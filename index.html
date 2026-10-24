@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vapsi Prototype</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 16px; background: #f6f5f1; color: #222; }
+  h1 { margin-bottom: 0; }
+  textarea, pre { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ccc; border-radius: 8px; background: #fff; }
+  pre { white-space: pre-wrap; }
+  button { padding: 10px 16px; margin: 8px 8px 0 0; border: 0; border-radius: 8px; background: #1f4d3a; color: #fff; cursor: pointer; }
+  small { color: #666; }
+</style>
+</head>
+<body>
+<h1>Vapsi (वापसी)</h1>
+<p>Cyber fraud ke baad: bank SMS paste karo, letter ready.</p>
+
+<textarea id="sms" rows="5" placeholder="Bank ka SMS yahan paste karo..."></textarea>
+<button onclick="run('freeze')">Account freeze hua</button>
+<button onclick="run('fraud')">Paise chale gaye</button>
+
+<h3>Details mili</h3>
+<pre id="facts">-</pre>
+<h3>Letter</h3>
+<pre id="letter">-</pre>
+<button onclick="navigator.clipboard.writeText(letter.textContent)">Copy letter</button>
+
+<p><small>Paperwork helper hai, lawyer nahi. Sab browser mein chalta hai, kuch upload nahi hota.</small></p>
+
+<script>
+function parse(text) {
+  const pick = (re) => (text.match(re) || [])[1] || "[NOT FOUND]";
+  return {
+    amount: pick(/(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d+)?)/i),
+    utr: pick(/(?:utr|ref(?:erence)?\s*no\.?|rrn)[:\s#-]*(\d{10,22})/i),
+    account: pick(/a\/?c\s*(?:no\.?)?\s*[x*]*(\d{3,6})/i),
+    date: pick(/(\d{1,2}[-\/][A-Za-z\d]{2,3}[-\/]\d{2,4})/),
+  };
+}
+
+function freezeLetter(f) {
+  return `To,
+The Branch Manager / Nodal Officer,
+[BANK NAME]
+
+Subject: Request to release freeze on A/c ending ${f.account}
+
+My account was frozen in full over a disputed credit of Rs ${f.amount} (Ref ${f.utr}, ${f.date}).
+As per Allahabad High Court (Khalsa Medical Store v. RBI, 2026), a lien may only be placed on the
+specific disputed amount, not the whole account. Kindly:
+1. Restrict the lien to Rs ${f.amount} only and release the rest.
+2. Share the complaint number, police agency and FIR copy behind this freeze.
+3. Reply within 7 days.
+
+[YOUR NAME]
+[PHONE]`;
+}
+
+function fraudLetter(f) {
+  return `1930 CALL SCRIPT
+"Mere saath cyber fraud hua hai. Rs ${f.amount} gaye, UTR ${f.utr}, date ${f.date}. Kripya complaint darj karein."
+
+Then file at cybercrime.gov.in with the same UTR and amount.
+
+EMAIL TO BANK NODAL OFFICER
+Subject: Unauthorised debit of Rs ${f.amount}, UTR ${f.utr}
+Rs ${f.amount} was debited from A/c ending ${f.account} on ${f.date} due to fraud.
+Please block further debits, raise a chargeback/UPI dispute and share the reference number.
+[YOUR NAME] [PHONE]`;
+}
+
+function run(kind) {
+  const f = parse(document.getElementById("sms").value);
+  facts.textContent = Object.entries(f).map(([k, v]) => `${k}: ${v}`).join("\n");
+  letter.textContent = kind === "freeze" ? freezeLetter(f) : fraudLetter(f);
+}
+</script>
+</body>
+</html>
